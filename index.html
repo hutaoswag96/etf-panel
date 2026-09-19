@@ -160,7 +160,7 @@
   .attr-names .an-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:26px;padding:0 10px;box-sizing:border-box;}
   .attr-names .an-row .an-name{font-size:12px;font-weight:600;color:#1D2129;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .attr-names .an-row .an-val{font-size:12px;font-weight:700;white-space:nowrap;}
-  /* 个人归因名称列：金额（主）+ 收益率（次） */
+  /* 个人归因名称列：收益率 %（彩色主位）+ 金额（灰色辅位） */
   .attr-names .an-row .an-vals{display:flex;align-items:baseline;gap:5px;white-space:nowrap;}
   .attr-names .an-row .an-vals .an-val{font-size:12.5px;font-weight:700;letter-spacing:-0.2px;}
   .attr-names .an-row .an-sub{font-size:10px;font-weight:500;color:#86909C;}
@@ -633,7 +633,7 @@
         <div class="pf-chart">
           <div class="pf-chart-title"><span>个人收益归因 <span class="hint">按周 · 红涨绿跌 · 条长 1%≈1天</span></span><b id="pfAttrRate"></b></div>
           <div id="pfAttr"></div>
-          <div class="attr-note">每行一笔持仓：块上方 <b>¥金额</b>＝该笔贡献收益（含未平仓浮盈），其后灰色 <b>%</b>＝占账户本金比例；<b>色条长度</b>＝收益率（1%≈1天，红涨/绿跌），<b>浅色块</b>＝持有区间，<b style="color:#165DFF">蓝框虚线</b>＝仍持仓；左侧名称列为该品种累计贡献（<b>金额 + 百分比</b>），右上方为全部品种合计。横轴<b>一周一格</b>，可左右滑动。</div>
+          <div class="attr-note">每行一笔持仓：块上方 <b>%</b>＝该笔收益率（彩色主位，与色条同色，红涨/绿跌），其后灰色 <b>¥金额</b>＝该笔贡献收益（含未平仓浮盈，仅供查看）；<b>色条长度</b>＝收益率（1%≈1天），<b>浅色块</b>＝持有区间，<b style="color:#165DFF">蓝框虚线</b>＝仍持仓；左侧名称列为该品种累计 <b>%</b> + 灰色累计金额，右上方为全部品种合计。横轴<b>一周一格</b>，可左右滑动。</div>
         </div>
         <div class="note" id="pfCapNote"></div>
       </section>
@@ -2300,11 +2300,11 @@ function drawPersonalAttr(){
       const barW=Math.max(2.5, Math.min(Math.abs(batchRet)*100*(weekW/7), svgW-x0-4));
       segs+=`<rect x="${x0.toFixed(1)}" y="${(segTop-6).toFixed(1)}" width="${barW.toFixed(1)}" height="4" fill="${edge}" opacity="0.9" rx="1"/>`;
       segs+=`<rect x="${x0.toFixed(1)}" y="${segTop.toFixed(1)}" width="${w.toFixed(1)}" height="10" fill="${fill}" ${st} rx="2"/>`;
-      // 标签：① 该笔贡献金额（¥，主）② 占账户本金比例（%，次）—— 金额比百分比更直观
+      // 标签：① 该笔收益率 %（彩色主位，与色条同色）② 贡献金额 ¥（灰色辅位，只供查看不抢眼）
       const _amt=b.profit||0;
       const amtTxt=fmtMoney(_amt);
       const pctTxt=(batchRet>=0?'+':'')+(batchRet*100).toFixed(2)+'%';
-      segs+=`<text x="${x0.toFixed(1)}" y="${(segTop-9).toFixed(1)}" text-anchor="start" font-weight="700" fill="${edge}"><tspan font-size="10.5">${amtTxt}</tspan><tspan font-size="9.5" font-weight="500" fill="#86909C" dx="4">${pctTxt}</tspan></text>`;
+      segs+=`<text x="${x0.toFixed(1)}" y="${(segTop-9).toFixed(1)}" text-anchor="start" font-weight="700" fill="${edge}"><tspan font-size="10.5">${pctTxt}</tspan><tspan font-size="9.5" font-weight="500" fill="#86909C" dx="4">${amtTxt}</tspan></text>`;
       if(b.open){
         // 个人记录仍显示持仓：若策略引擎已不再持有该品种 → 疑似券商已卖出但未在面板记账
         const ps=stratP[b.code]||[];
@@ -2325,13 +2325,14 @@ function drawPersonalAttr(){
     // 该品种累计贡献金额 = 其所有批次金额之和（含浮盈），与 % 同一口径
     let amt=0; r.batches.forEach(b=>{ amt+=(b.profit||0); }); r.amt=amt;
     const pos=r.ret>=0;
-    names+=`<div class="an-row" style="background:${zc}"><span class="an-name">${NAMES[r.code]||r.code}</span><span class="an-vals"><span class="an-val" style="color:${pos?'#F53F3F':'#00B42A'}">${fmtMoney(amt)}</span><span class="an-sub">${(pos?'+':'')+(r.ret*100).toFixed(2)}%</span></span></div>`;
+    // 主位＝收益率（彩色，红涨绿跌）；辅位＝累计金额（灰色，便于查看不抢眼）
+    names+=`<div class="an-row" style="background:${zc}"><span class="an-name">${NAMES[r.code]||r.code}</span><span class="an-vals"><span class="an-val" style="color:${pos?'#F53F3F':'#00B42A'}">${(pos?'+':'')+(r.ret*100).toFixed(2)}%</span><span class="an-sub">${fmtMoney(amt)}</span></span></div>`;
   });
   holder.innerHTML=`<div class="attr-gantt-wrap"><div class="attr-names" style="width:${nameW}px;flex:0 0 ${nameW}px;"><div class="an-row" style="height:${PAD_TOP}px"></div>${names}<div class="an-row" style="height:${axisH}px"></div></div><div class="attr-scroll" id="pfAttrScroll">${svg}</div></div>`;
   const sc=document.getElementById('pfAttrScroll'); if(sc) sc.scrollLeft=Math.max(0, sc.scrollWidth-sc.clientWidth);
-  // 顶部总收益：金额与收益率都直接对名称列 Σ，与名称列/收益条三方同口径
+  // 顶部总收益：主位＝收益率（彩色），辅位＝累计金额（灰色）；均对名称列 Σ，与名称列/收益条三方同口径
   let totRate=0, totAmt=0; rows.forEach(r=>{ totRate+=r.ret; totAmt+=(r.amt||0); });
-  if(rateEl) rateEl.innerHTML=`<span style="color:${totAmt>=0?'#F53F3F':'#00B42A'}">${fmtMoney(totAmt)}</span><span style="font-size:11px;font-weight:600;color:#86909C;margin-left:6px">${(totRate>=0?'+':'')+(totRate*100).toFixed(2)}%</span>`;
+  if(rateEl) rateEl.innerHTML=`<span style="color:${totRate>=0?'#F53F3F':'#00B42A'}">${(totRate>=0?'+':'')+(totRate*100).toFixed(2)}%</span><span style="font-size:11px;font-weight:600;color:#86909C;margin-left:6px">${fmtMoney(totAmt)}</span>`;
 }
 
 // 添加/编辑记录表单
